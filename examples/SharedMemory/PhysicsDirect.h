@@ -22,15 +22,21 @@ protected:
 
 	bool processVisualShapeData(const struct SharedMemoryCommand& orgCommand);
 
+	bool processMeshData(const struct SharedMemoryCommand& orgCommand);
+
 	void processBodyJointInfo(int bodyUniqueId, const struct SharedMemoryStatus& serverCmd);
 
 	void processAddUserData(const struct SharedMemoryStatus& serverCmd);
+
+	bool processCustomCommand(const struct SharedMemoryCommand& orgCommand);
 
 	void postProcessStatus(const struct SharedMemoryStatus& serverCmd);
 
 	void resetData();
 
 	void removeCachedBody(int bodyUniqueId);
+
+	void clearCachedBodies();
 
 public:
 	PhysicsDirect(class PhysicsCommandProcessorInterface* physSdk, bool passSdkOwnership);
@@ -61,7 +67,9 @@ public:
 
 	virtual bool getBodyInfo(int bodyUniqueId, struct b3BodyInfo& info) const;
 
-	virtual int getNumJoints(int bodyIndex) const;
+	virtual int getNumJoints(int bodyUniqueId) const;
+
+	virtual int getNumDofs(int bodyUniqueId) const;
 
 	virtual bool getJointInfo(int bodyIndex, int jointIndex, struct b3JointInfo& info) const;
 
@@ -94,6 +102,8 @@ public:
 
 	virtual void getCachedCollisionShapeInformation(struct b3CollisionShapeInformation* collisionShapesInfo);
 
+	virtual void getCachedMeshData(struct b3MeshData* meshData);
+
 	virtual void getCachedVREvents(struct b3VREventsData* vrEventsData);
 
 	virtual void getCachedKeyboardEvents(struct b3KeyboardEventsData* keyboardEventsData);
@@ -103,6 +113,8 @@ public:
 	virtual void getCachedRaycastHits(struct b3RaycastInformation* raycastHits);
 
 	virtual void getCachedMassMatrix(int dofCountCheck, double* massMatrix);
+
+	virtual bool getCachedReturnData(b3UserDataValue* returnData);
 
 	//the following APIs are for internal use for visualization:
 	virtual bool connect(struct GUIHelperInterface* guiHelper);

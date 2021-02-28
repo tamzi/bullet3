@@ -22,6 +22,8 @@ subject to the following restrictions:
 
 #include <string.h>  //for memset
 
+#include <cmath>
+
 const int kNoMerge = -1;
 
 bool btBatchedConstraints::s_debugDrawBatches = false;
@@ -520,7 +522,7 @@ static void writeGrainSizes(btBatchedConstraints* bc)
 	{
 		const Range& phase = bc->m_phases[iPhase];
 		int numBatches = phase.end - phase.begin;
-		float grainSize = floor((0.25f * numBatches / float(numThreads)) + 0.0f);
+		float grainSize = std::floor((0.25f * numBatches / float(numThreads)) + 0.0f);
 		bc->m_phaseGrainSize[iPhase] = btMax(1, int(grainSize));
 	}
 }
@@ -850,7 +852,7 @@ static void setupSpatialGridBatchesMt(
 		memHelper.addChunk((void**)&constraintRowBatchIds, sizeof(int) * numConstraintRows);
 		size_t scratchSize = memHelper.getSizeToAllocate();
 		// if we need to reallocate
-		if (scratchMemory->capacity() < scratchSize)
+		if (static_cast<size_t>(scratchMemory->capacity()) < scratchSize)
 		{
 			// allocate 6.25% extra to avoid repeated reallocs
 			scratchMemory->reserve(scratchSize + scratchSize / 16);
@@ -887,6 +889,8 @@ static void setupSpatialGridBatchesMt(
 	btVector3 consExtent = findMaxDynamicConstraintExtent(bodyPositions, bodyDynamicFlags, conInfos, numConstraints, bodies.size());
 
 	btVector3 gridExtent = bboxMax - bboxMin;
+
+	gridExtent.setMax(btVector3(btScalar(1), btScalar(1), btScalar(1)));
 
 	btVector3 gridCellSize = consExtent;
 	int gridDim[3];

@@ -42,7 +42,9 @@ public:
 
 	virtual bool getBodyInfo(int bodyUniqueId, struct b3BodyInfo& info) const;
 
-	virtual int getNumJoints(int bodyIndex) const;
+	virtual int getNumJoints(int bodyUniqueId) const;
+
+	virtual int getNumDofs(int bodyUniqueId) const;
 
 	virtual bool getJointInfo(int bodyIndex, int jointIndex, struct b3JointInfo& info) const;
 
@@ -74,6 +76,8 @@ public:
 
 	virtual void getCachedCollisionShapeInformation(struct b3CollisionShapeInformation* collisionShapesInfo);
 
+	virtual void getCachedMeshData(struct b3MeshData* meshData);
+
 	virtual void getCachedVREvents(struct b3VREventsData* vrEventsData);
 
 	virtual void getCachedKeyboardEvents(struct b3KeyboardEventsData* keyboardEventsData);
@@ -83,6 +87,8 @@ public:
 	virtual void getCachedRaycastHits(struct b3RaycastInformation* raycastHits);
 
 	virtual void getCachedMassMatrix(int dofCountCheck, double* massMatrix);
+
+	virtual bool getCachedReturnData(struct b3UserDataValue* returnData);
 
 	virtual void setTimeOut(double timeOutInSeconds);
 	virtual double getTimeOut() const;

@@ -57,6 +57,7 @@ struct SimpleInternalData
 
 	int m_droidRegular;
 	int m_droidRegular2;
+	int m_textureId;
 
 	const char* m_frameDumpPngFileName;
 	FILE* m_ffmpegFile;
@@ -65,6 +66,8 @@ struct SimpleInternalData
 	int m_upAxis;  //y=1 or z=2 is supported
 	int m_customViewPortWidth;
 	int m_customViewPortHeight;
+	int m_mp4Fps;
+
 	SimpleInternalData()
 		: m_fontTextureId(0),
 		  m_largeFontTextureId(0),
@@ -74,13 +77,15 @@ struct SimpleInternalData
 		  m_renderCallbacks2(0),
 		  m_droidRegular(0),
 		  m_droidRegular2(0),
+		  m_textureId(-1),
 		  m_frameDumpPngFileName(0),
 		  m_ffmpegFile(0),
 		  m_renderTexture(0),
 		  m_userPointer(0),
 		  m_upAxis(1),
 		  m_customViewPortWidth(-1),
-		  m_customViewPortHeight(-1)
+		  m_customViewPortHeight(-1),
+		  m_mp4Fps(60)
 	{
 	}
 };
@@ -772,6 +777,51 @@ void SimpleOpenGL3App::registerGrid(int cells_x, int cells_z, float color0[4], f
 
 int SimpleOpenGL3App::registerGraphicsUnitSphereShape(EnumSphereLevelOfDetail lod, int textureId)
 {
+
+	int red = 255;
+	int green = 0;
+	int blue = 128;
+	if (textureId<0)
+	{
+		if (m_data->m_textureId < 0)
+		{
+			int texWidth = 1024;
+			int texHeight = 1024;
+			b3AlignedObjectArray<unsigned char> texels;
+			texels.resize(texWidth * texHeight * 3);
+			for (int i = 0; i < texWidth * texHeight * 3; i++)
+				texels[i] = 255;
+
+			for (int i = 0; i < texWidth; i++)
+			{
+				for (int j = 0; j < texHeight; j++)
+				{
+					int a = i < texWidth / 2 ? 1 : 0;
+					int b = j < texWidth / 2 ? 1 : 0;
+
+					if (a == b)
+					{
+						texels[(i + j * texWidth) * 3 + 0] = red;
+						texels[(i + j * texWidth) * 3 + 1] = green;
+						texels[(i + j * texWidth) * 3 + 2] = blue;
+						//					texels[(i+j*texWidth)*4+3] = 255;
+					}
+					/*else
+					{
+					texels[i*3+0+j*texWidth] = 255;
+					texels[i*3+1+j*texWidth] = 255;
+					texels[i*3+2+j*texWidth] = 255;
+					}
+					*/
+				}
+			}
+
+			m_data->m_textureId = m_instancingRenderer->registerTexture(&texels[0], texWidth, texHeight);
+			
+		}
+		textureId = m_data->m_textureId;
+	}
+
 	int strideInBytes = 9 * sizeof(float);
 
 	int graphicsShapeIndex = -1;
@@ -795,17 +845,17 @@ int SimpleOpenGL3App::registerGraphicsUnitSphereShape(EnumSphereLevelOfDetail lo
 		}
 		case SPHERE_LOD_MEDIUM:
 		{
-			int numVertices = sizeof(medium_sphere_vertices) / strideInBytes;
-			int numIndices = sizeof(medium_sphere_indices) / sizeof(int);
-			graphicsShapeIndex = m_instancingRenderer->registerShape(&medium_sphere_vertices[0], numVertices, medium_sphere_indices, numIndices, B3_GL_TRIANGLES, textureId);
+			int numVertices = sizeof(textured_detailed_sphere_vertices) / strideInBytes;
+			int numIndices = sizeof(textured_detailed_sphere_indices) / sizeof(int);
+			graphicsShapeIndex = m_instancingRenderer->registerShape(&textured_detailed_sphere_vertices[0], numVertices, textured_detailed_sphere_indices, numIndices, B3_GL_TRIANGLES, textureId);
 			break;
 		}
 		case SPHERE_LOD_HIGH:
 		default:
 		{
-			int numVertices = sizeof(detailed_sphere_vertices) / strideInBytes;
-			int numIndices = sizeof(detailed_sphere_indices) / sizeof(int);
-			graphicsShapeIndex = m_instancingRenderer->registerShape(&detailed_sphere_vertices[0], numVertices, detailed_sphere_indices, numIndices, B3_GL_TRIANGLES, textureId);
+			int numVertices = sizeof(textured_detailed_sphere_vertices) / strideInBytes;
+			int numIndices = sizeof(textured_detailed_sphere_indices) / sizeof(int);
+			graphicsShapeIndex = m_instancingRenderer->registerShape(&textured_detailed_sphere_vertices[0], numVertices, textured_detailed_sphere_indices, numIndices, B3_GL_TRIANGLES, textureId);
 			break;
 		}
 	};
@@ -1042,6 +1092,11 @@ void SimpleOpenGL3App::swapBuffer()
 	m_window->startRendering();
 }
 
+void SimpleOpenGL3App::setMp4Fps(int fps)
+{
+	m_data->m_mp4Fps = fps;
+}
+
 // see also http://blog.mmacklin.com/2013/06/11/real-time-video-capture-with-ffmpeg/
 void SimpleOpenGL3App::dumpFramesToVideo(const char* mp4FileName)
 {
@@ -1051,27 +1106,11 @@ void SimpleOpenGL3App::dumpFramesToVideo(const char* mp4FileName)
 		int height = (int)m_window->getRetinaScale() * m_instancingRenderer->getScreenHeight();
 		char cmd[8192];
 
-#ifdef _WIN32
 		sprintf(cmd,
-				"ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s %dx%d -i - "
+				"ffmpeg -r %d -f rawvideo -pix_fmt rgba -s %dx%d -i - "
 				"-threads 0 -y -b:v 50000k   -c:v libx264 -preset slow -crf 22 -an   -pix_fmt yuv420p -vf vflip %s",
-				width, height, mp4FileName);
+			m_data->m_mp4Fps, width, height, mp4FileName);
 
-		//sprintf(cmd, "ffmpeg -r 60 -f rawvideo -pix_fmt rgba   -s %dx%d -i - "
-		//		"-y -crf 0  -b:v 1500000 -an -vcodec h264 -vf vflip  %s", width, height, mp4FileName);
-#else
-
-		sprintf(cmd,
-				"ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s %dx%d -i - "
-				"-threads 0 -y -b 50000k   -c:v libx264 -preset slow -crf 22 -an   -pix_fmt yuv420p -vf vflip %s",
-				width, height, mp4FileName);
-#endif
-
-		//sprintf(cmd,"ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s %dx%d -i - "
-		//            "-threads 0 -y -crf 0 -b 50000k -vf vflip %s",width,height,mp4FileName);
-
-		//              sprintf(cmd,"ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s %dx%d -i - "
-		//              "-threads 0 -preset fast -y -crf 21 -vf vflip %s",width,height,mp4FileName);
 
 		if (m_data->m_ffmpegFile)
 		{

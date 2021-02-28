@@ -11,13 +11,19 @@ struct EGLRendererVisualShapeConverter : public UrdfRenderingInterface
 
 	virtual ~EGLRendererVisualShapeConverter();
 
-	virtual void convertVisualShapes(int linkIndex, const char* pathPrefix, const btTransform& localInertiaFrame, const UrdfLink* linkPtr, const UrdfModel* model, int collisionObjectUniqueId, int bodyUniqueId, struct CommonFileIOInterface* fileIO);
+	virtual int convertVisualShapes(int linkIndex, const char* pathPrefix, const btTransform& localInertiaFrame, const UrdfLink* linkPtr, const UrdfModel* model, int orgGraphicsUniqueId, int bodyUniqueId, struct CommonFileIOInterface* fileIO);
 
 	virtual int getNumVisualShapes(int bodyUniqueId);
 
 	virtual int getVisualShapesData(int bodyUniqueId, int shapeIndex, struct b3VisualShapeData* shapeData);
 
+	virtual int registerShapeAndInstance(const b3VisualShapeData& visualShape, const float* vertices, int numvertices, const int* indices, int numIndices, int primitiveType, int textureId, int orgGraphicsUniqueId, int bodyUniqueId, int linkIndex);
+
+	virtual void updateShape(int shapeUniqueId, const btVector3* vertices, int numVertices, const btVector3* normals, int numNormals);
+
 	virtual void changeRGBAColor(int bodyUniqueId, int linkIndex, int shapeIndex, const double rgbaColor[4]);
+
+	virtual void changeInstanceFlags(int bodyUniqueId, int linkIndex, int shapeIndex, int flags);
 
 	virtual void changeShapeTexture(int objectUniqueId, int linkIndex, int shapeIndex, int textureUniqueId);
 
@@ -50,11 +56,20 @@ struct EGLRendererVisualShapeConverter : public UrdfRenderingInterface
 
 	virtual int loadTextureFile(const char* filename, struct CommonFileIOInterface* fileIO);
 	virtual int registerTexture(unsigned char* texels, int width, int height);
+	virtual int registerTextureInternal(unsigned char* texels, int width, int height);
+	
 
 	virtual void setProjectiveTextureMatrices(const float viewMatrix[16], const float projectionMatrix[16]);
 	virtual void setProjectiveTexture(bool useProjectiveTexture);
 
 	virtual void syncTransform(int shapeUid, const class btTransform& worldTransform, const class btVector3& localScaling);
+
+	virtual void mouseMoveCallback(float x, float y);
+	virtual void mouseButtonCallback(int button, int state, float x, float y);
+
+	virtual bool getCameraInfo(int* width, int* height, float viewMatrix[16], float projectionMatrix[16], float camUp[3], float camForward[3], float hor[3], float vert[3], float* yaw, float* pitch, float* camDist, float cameraTarget[3]) const;
+	
+
 };
 
 #endif  //EGL_RENDERER_VISUAL_SHAPE_CONVERTER_H
