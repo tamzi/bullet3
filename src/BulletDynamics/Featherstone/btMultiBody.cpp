@@ -33,8 +33,8 @@
 
 namespace
 {
-const btScalar SLEEP_EPSILON = btScalar(0.05);  // this is a squared velocity (m^2 s^-2)
-const btScalar SLEEP_TIMEOUT = btScalar(2);     // in seconds
+const btScalar INITIAL_SLEEP_EPSILON = btScalar(0.05);  // this is a squared velocity (m^2 s^-2)
+const btScalar INITIAL_SLEEP_TIMEOUT = btScalar(2);     // in seconds
 }  // namespace
 
 void btMultiBody::spatialTransform(const btMatrix3x3 &rotation_matrix,  // rotates vectors in 'from' frame to vectors in 'to' frame
@@ -110,6 +110,9 @@ btMultiBody::btMultiBody(int n_links,
 	  m_canSleep(canSleep),
 	  m_canWakeup(true),
 	  m_sleepTimer(0),
+      m_sleepEpsilon(INITIAL_SLEEP_EPSILON),
+	  m_sleepTimeout(INITIAL_SLEEP_TIMEOUT),
+
 	  m_userObjectPointer(0),
 	  m_userIndex2(-1),
 	  m_userIndex(-1),
@@ -933,7 +936,8 @@ void btMultiBody::computeAccelerationsArticulatedBodyAlgorithmMultiDof(btScalar 
 			if (m_useGyroTerm)
 				zeroAccSpatFrc[i + 1].addAngular(spatVel[i + 1].getAngular().cross(m_links[i].m_inertiaLocal * spatVel[i + 1].getAngular()));
 			//
-			zeroAccSpatFrc[i + 1].addLinear(m_links[i].m_mass * spatVel[i + 1].getAngular().cross(spatVel[i + 1].getLinear()));
+                        if (!isConstraintPass)
+      				zeroAccSpatFrc[i + 1].addLinear(m_links[i].m_mass * spatVel[i + 1].getAngular().cross(spatVel[i + 1].getLinear()));
 			//
 			//btVector3 temp = m_links[i].m_mass * spatVel[i+1].getAngular().cross(spatVel[i+1].getLinear());
 			////clamp parent's omega
@@ -980,7 +984,11 @@ void btMultiBody::computeAccelerationsArticulatedBodyAlgorithmMultiDof(btScalar 
 			//
 			hDof = spatInertia[i + 1] * m_links[i].m_axes[dof];
 			//
-			Y[m_links[i].m_dofOffset + dof] = m_links[i].m_jointTorque[dof] - m_links[i].m_axes[dof].dot(zeroAccSpatFrc[i + 1]) - spatCoriolisAcc[i].dot(hDof);
+			btScalar jointTorque = 0;
+			if (isConstraintPass) jointTorque = 0;
+			else jointTorque = m_links[i].m_jointTorque[dof];
+			Y[m_links[i].m_dofOffset + dof] = jointTorque - m_links[i].m_axes[dof].dot(zeroAccSpatFrc[i + 1]) - spatCoriolisAcc[i].dot(hDof);
+
 		}
 		for (int dof = 0; dof < m_links[i].m_dofCount; ++dof)
 		{
@@ -1411,7 +1419,7 @@ void btMultiBody::solveImatrix(const btSpatialForceVector &rhs, btSpatialMotionV
 	}
 }
 
-void btMultiBody::mulMatrix(btScalar *pA, btScalar *pB, int rowsA, int colsA, int rowsB, int colsB, btScalar *pC) const
+void btMultiBody::mulMatrix(const btScalar *pA, const btScalar *pB, int rowsA, int colsA, int rowsB, int colsB, btScalar *pC) const
 {
 	for (int row = 0; row < rowsA; row++)
 	{
@@ -2104,10 +2112,10 @@ void btMultiBody::checkMotionAndSleepIfRequired(btScalar timestep)
 			motion += m_realBuf[i] * m_realBuf[i];
 	}
 
-	if (motion < SLEEP_EPSILON)
+	if (motion < m_sleepEpsilon)
 	{
 		m_sleepTimer += timestep;
-		if (m_sleepTimer > SLEEP_TIMEOUT)
+		if (m_sleepTimer > m_sleepTimeout)
 		{
 			goToSleep();
 		}

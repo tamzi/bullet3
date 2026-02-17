@@ -28,6 +28,8 @@ protected:
 
 	void processAddUserData(const struct SharedMemoryStatus& serverCmd);
 
+	bool processRequestBodyInfo(const struct SharedMemoryCommand& command, SharedMemoryStatus& status);
+
 	bool processCustomCommand(const struct SharedMemoryCommand& orgCommand);
 
 	void postProcessStatus(const struct SharedMemoryStatus& serverCmd);
@@ -103,6 +105,8 @@ public:
 	virtual void getCachedCollisionShapeInformation(struct b3CollisionShapeInformation* collisionShapesInfo);
 
 	virtual void getCachedMeshData(struct b3MeshData* meshData);
+
+	virtual void getCachedTetraMeshData(struct b3TetraMeshData* meshData);
 
 	virtual void getCachedVREvents(struct b3VREventsData* vrEventsData);
 

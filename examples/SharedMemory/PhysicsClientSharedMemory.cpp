@@ -54,6 +54,7 @@ struct PhysicsClientSharedMemoryInternalData
 	btAlignedObjectArray<b3CollisionShapeData> m_cachedCollisionShapes;
 
 	b3MeshData m_cachedMeshData;
+	b3TetraMeshData m_cachedTetraMeshData;
 	btAlignedObjectArray<b3MeshVertex> m_cachedVertexPositions;
 
 	btAlignedObjectArray<b3VRControllerEvent> m_cachedVREvents;
@@ -702,6 +703,16 @@ const SharedMemoryStatus* PhysicsClientSharedMemory::processServerStatus()
 				}
 				break;
 			}
+			case CMD_PERFORM_COLLISION_DETECTION_COMPLETED:
+			{
+				B3_PROFILE("CMD_PERFORM_COLLISION_DETECTION_COMPLETED");
+
+				if (m_data->m_verboseOutput)
+				{
+					b3Printf("Server completed performing collision detection");
+				}
+				break;
+			}
 			case CMD_URDF_LOADING_FAILED:
 			{
 				B3_PROFILE("CMD_URDF_LOADING_FAILED");
@@ -1062,6 +1073,24 @@ const SharedMemoryStatus* PhysicsClientSharedMemory::processServerStatus()
 			case CMD_REQUEST_MESH_DATA_FAILED:
 			{
 				b3Warning("Request mesh data failed");
+				break;
+			}
+			case CMD_REQUEST_TETRA_MESH_DATA_COMPLETED:
+			{
+				m_data->m_cachedVertexPositions.resize(serverCmd.m_sendMeshDataArgs.m_startingVertex + serverCmd.m_sendMeshDataArgs.m_numVerticesCopied);
+				btVector3* verticesReceived = (btVector3*)m_data->m_testBlock1->m_bulletStreamDataServerToClientRefactor;
+				for (int i = 0; i < serverCmd.m_sendMeshDataArgs.m_numVerticesCopied; i++)
+				{
+					m_data->m_cachedVertexPositions[i + serverCmd.m_sendMeshDataArgs.m_startingVertex].x = verticesReceived[i].x();
+					m_data->m_cachedVertexPositions[i + serverCmd.m_sendMeshDataArgs.m_startingVertex].y = verticesReceived[i].y();
+					m_data->m_cachedVertexPositions[i + serverCmd.m_sendMeshDataArgs.m_startingVertex].z = verticesReceived[i].z();
+					m_data->m_cachedVertexPositions[i + serverCmd.m_sendMeshDataArgs.m_startingVertex].w = verticesReceived[i].w();
+				}
+				break;
+			}
+			case CMD_REQUEST_TETRA_MESH_DATA_FAILED:
+			{
+				b3Warning("Request tetra mesh data failed");
 				break;
 			}
 			case CMD_CALCULATED_INVERSE_DYNAMICS_COMPLETED:
@@ -1511,12 +1540,18 @@ const SharedMemoryStatus* PhysicsClientSharedMemory::processServerStatus()
 				b3Warning("Removing user data failed");
 				break;
 			}
+			case CMD_RESET_MESH_DATA_FAILED:
+			{
+				b3Warning("resetMeshData failed");
+				break;
+			}
 			case CMD_REQUEST_USER_DATA_COMPLETED:
 			case CMD_SYNC_USER_DATA_COMPLETED:
 			case CMD_REMOVE_USER_DATA_COMPLETED:
 			case CMD_ADD_USER_DATA_COMPLETED:
 			case CMD_REMOVE_STATE_FAILED:
 			case CMD_REMOVE_STATE_COMPLETED:
+			case CMD_RESET_MESH_DATA_COMPLETED:
 			{
 				break;
 			}
@@ -2070,6 +2105,15 @@ void PhysicsClientSharedMemory::getCachedMeshData(struct b3MeshData* meshData)
 	m_data->m_cachedMeshData.m_vertices = m_data->m_cachedMeshData.m_numVertices ? &m_data->m_cachedVertexPositions[0] : 0;
 	
 	*meshData = m_data->m_cachedMeshData;
+}
+
+void PhysicsClientSharedMemory::getCachedTetraMeshData(struct b3TetraMeshData* meshData)
+{
+	m_data->m_cachedTetraMeshData.m_numVertices = m_data->m_cachedVertexPositions.size();
+	
+	m_data->m_cachedTetraMeshData.m_vertices = m_data->m_cachedTetraMeshData.m_numVertices ? &m_data->m_cachedVertexPositions[0] : 0;
+	
+	*meshData = m_data->m_cachedTetraMeshData;
 }
 
 const float* PhysicsClientSharedMemory::getDebugLinesFrom() const

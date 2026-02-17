@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.3)
+cmake_minimum_required(VERSION 3.5)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 cmake_policy(SET CMP0017 NEW)
 #this line has to appear before 'PROJECT' in order to be able to disable incremental linking
@@ -29,6 +29,8 @@ OPTION(USE_GRAPHICAL_BENCHMARK "Use Graphical Benchmark" ON)
 OPTION(BUILD_SHARED_LIBS "Use shared libraries" OFF)
 OPTION(USE_SOFT_BODY_MULTI_BODY_DYNAMICS_WORLD "Use btSoftMultiBodyDynamicsWorld" ON)
 OPTION(USE_OPENVR "Use OpenVR for virtual reality" OFF)
+
+OPTION(ENABLE_VHACD "Use VHACD in BulletRobotics and pybullet" ON)
 
 OPTION(BULLET2_MULTITHREADING "Build Bullet 2 libraries with mutex locking around certain operations (required for multi-threading)" OFF)
 IF (BULLET2_MULTITHREADING)
